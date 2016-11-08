@@ -121,3 +121,5 @@ class slicer:
                 ty = a[3] / 2
                 for m in models:
                     m.translate(0, ty, 0)            
+
+        
