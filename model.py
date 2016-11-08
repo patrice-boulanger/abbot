@@ -18,29 +18,6 @@ class model:
         
         # computes model bounds
         self.update_bounds()
-
-        # align the mesh to (0,0,0)
-        tx = ty = tz = 0
-
-        if self.bbox_min[0] != 0:
-            tx = -self.bbox_min[0]
-
-        if self.bbox_min[1] != 0:
-            ty = -self.bbox_min[1]
-
-        if self.bbox_min[2] != 0:
-            tz = -self.bbox_min[2]
-
-        if tx != 0 or ty != 0 or tz != 0:
-            print(" translated to (" + str(tx) + "," + str(ty) + "," + str(tz) + ")")
-            self.translate(tx, ty, tz)
-
-        self.bbox_min[0] += tx
-        self.bbox_max[0] += tx
-        self.bbox_min[1] += ty
-        self.bbox_max[1] += ty
-        self.bbox_min[2] += tz
-        self.bbox_max[2] += tz
         
     def translate(self, tx, ty, tz):
         """ Translate the mesh """

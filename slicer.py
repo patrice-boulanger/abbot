@@ -73,44 +73,51 @@ class slicer:
 
         # Packs models on the printer plate according to their bounding box
         models.sort(reverse = True, key = lambda m: (m.bbox_max[0] - m.bbox_min[0]) * (m.bbox_max[1] - m.bbox_min[1]))
-        # Divide the printer plate into a List of sub-plates (X offset, Y offset, width, height), initialized to the full plate
-        plates = [ [0, 0, self.config["printer"]["max"][0], self.config["printer"]["max"][1]] ]
+        # Divide the printer plate into a list of areas (X offset, Y offset, width, height),
+        # initialized at 90% of the size of the  plate
+        areas = [ [0, 0, 0.9 * self.config["printer"]["max"][0], 0.9 * self.config["printer"]["max"][1]] ]
 
+        gap = 10
+        
         for t in models:
             print("processing " + t.name)
 
-            offx = offy = -1
-            w = t.bbox_max[0] - t.bbox_min[0]
-            h = t.bbox_max[1] - t.bbox_min[1]
+            tx = -t.bbox_min[0]
+            ty = -t.bbox_min[1]
+            tz = -t.bbox_min[2] # Force the model to lay on the plate
+            
+            w = gap + (t.bbox_max[0] - t.bbox_min[0])
+            h = gap + (t.bbox_max[1] - t.bbox_min[1])
 
-            plates.sort(key = lambda p: p[2] * p[3])
+            # Start looking for smallest areas
+            areas.sort(key = lambda p: p[2] * p[3])
 
-            for p in plates:
-                if w <= p[2] and h <= p[3]:
-                    offx = p[0]
-                    offy = p[1]
+            for a in areas:
+                if w <= a[2] and h <= a[3]:
+                    tx += a[0] + gap
+                    ty += a[1] + gap
 
-                    np1 = [ p[0] + w, p[1]    , p[2] - w, h ]
-                    np2 = [ p[0]    , p[1] + h, p[2]    , p[3] - h]
+                    na1 = [ a[0] + w, a[1]    , a[2] - w, h ]
+                    na2 = [ a[0]    , a[1] + h, a[2]    , a[3] - h]
 
-                    plates.remove(p)
-                    plates.append(np1)
-                    plates.append(np2)
+                    areas.remove(a)
+                    if na1[2] != 0 and na1[3] != 0:
+                        areas.append(na1)
+                    if na2[2] != 0 and na2[3] != 0:
+                        areas.append(na2)
                     
                     break
                     
-            if offx == -1 or offy == -1:
+            if tx == -1 or ty == -1:
                 print(t.name + " doesn't fit on the plate")
                 return
 
-            print("move " + t.name + " to " + str(offx) + "," + str(offy))
-            t.translate(offx, offy, 0)
+            print("move " + t.name + " to " + str(tx) + "," + str(ty) + "," + str(tz))
+            t.translate(tx, ty, tz)
 
-        for p in plates:
-            print(str(p))
-            
-        msh = []
-        for m in models:
-            msh.append(m.mesh)
-            
-        ui.show_mesh(msh)
+        # Center the models on the Y axis
+        for a in areas:
+            if a[2] == 0.9 * self.config["printer"]["max"][0]:
+                ty = a[3] / 2
+                for m in models:
+                    m.translate(0, ty, 0)            
