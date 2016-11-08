@@ -2,8 +2,7 @@
 
 import sys, getopt
 import json
-
-from slicer import slicer
+import slicer
 
 def usage():
     """ Print an help message """    
