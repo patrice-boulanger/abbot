@@ -105,6 +105,14 @@ class slicer:
                 ty = a[3] / 2
                 for m in models:
                     m.translate(0, ty, 0)            
+
+    def slice_facet(self, facet, z):
+        """ Slice a facet at height z """
+
+        # Coordinates of the resulting segment
+        xa = ya = xb = yb = None
+        
+        return xa, ya, xb, yb
         
     def run(self):
         """ Slicer main loop """
@@ -137,3 +145,10 @@ class slicer:
             for m in models:
                 m.update_slicing_plan(z)
                 
+                for p in m.lst_intersect:
+                    facet = m.mesh.points[p]
+                    (xa, ya, xb, yb) = self.slice_facet(facet, z)
+
+                    if xa == None:
+                        continue
+                    
