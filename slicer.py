@@ -55,33 +55,18 @@ class slicer:
         self.config["thickness"]["shell"] = 0.7
         self.config["thickness"]["top_bottom"] = 0.6
 
-    def run(self):
-        """ Slicer main loop """
+    def arrange(self, models):
+        """ Packs models on the printer plate according to their bounding box """
 
-        verbose = self.config["verbose"]
-        models = []
-        
-        # Load models
-        for m in self.config["models"]:
-            try:
-                mdl = model.model(m, stl.mesh.Mesh.from_file(m))
-                models.append(mdl)
-                
-            except Exception as err:
-                print(str(err))
-                return
-
-        # Packs models on the printer plate according to their bounding box
+        # Sort the models order by decreasing surface
         models.sort(reverse = True, key = lambda m: (m.bbox_max[0] - m.bbox_min[0]) * (m.bbox_max[1] - m.bbox_min[1]))
         # Divide the printer plate into a list of areas (X offset, Y offset, width, height),
-        # initialized at 90% of the size of the  plate
+        # Initialized at 90% of the size of the plate
         areas = [ [0, 0, 0.9 * self.config["printer"]["max"][0], 0.9 * self.config["printer"]["max"][1]] ]
 
-        gap = 10
+        gap = 10 # Minimum gap betweem 2 models
         
         for t in models:
-            print("processing " + t.name)
-
             tx = -t.bbox_min[0]
             ty = -t.bbox_min[1]
             tz = -t.bbox_min[2] # Force the model to lay on the plate
@@ -89,7 +74,7 @@ class slicer:
             w = gap + (t.bbox_max[0] - t.bbox_min[0])
             h = gap + (t.bbox_max[1] - t.bbox_min[1])
 
-            # Start looking for smallest areas
+            # Try to populate smallest areas first
             areas.sort(key = lambda p: p[2] * p[3])
 
             for a in areas:
@@ -112,7 +97,6 @@ class slicer:
                 print(t.name + " doesn't fit on the plate")
                 return
 
-            print("move " + t.name + " to " + str(tx) + "," + str(ty) + "," + str(tz))
             t.translate(tx, ty, tz)
 
         # Center the models on the Y axis
@@ -121,5 +105,23 @@ class slicer:
                 ty = a[3] / 2
                 for m in models:
                     m.translate(0, ty, 0)            
+        
+    def run(self):
+        """ Slicer main loop """
+
+        verbose = self.config["verbose"]
+        models = []
+        
+        # Load models
+        for m in self.config["models"]:
+            try:
+                mdl = model.model(m, stl.mesh.Mesh.from_file(m))
+                models.append(mdl)
+                
+            except Exception as err:
+                print(str(err))
+                return
+
+        self.arrange(models)
 
         
