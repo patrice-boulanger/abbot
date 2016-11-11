@@ -15,9 +15,10 @@ class model:
         # models bounds
         self.bbox_min = [ None, None, None ]
         self.bbox_max = [ None, None, None ]
-        
-        # computes model bounds
         self.update_bounds()
+
+        self.lst_intersect = [] # facets that intersect the slicing plan
+        self.lst_above = [] # facets above the slicing plan
         
     def translate(self, tx, ty, tz):
         """ Translate the mesh """
@@ -53,3 +54,40 @@ class model:
             self.bbox_max[2] = max(p[stl.Dimension.Z], self.bbox_max[2])
             self.bbox_min[2] = min(p[stl.Dimension.Z], self.bbox_min[2])
         
+    def set_slicing_plan(self, z):
+        """ Compute internal list of facets for the given slicing plan """
+
+        idx = 0
+        
+        for p in self.mesh.points:
+            zmin = min(p[2], min(p[5], p[8]))
+            zmax = max(p[2], max(p[5], p[8]))
+
+            if zmin <= z and zmax >= z:
+                self.lst_intersect.append(idx)
+            elif zmin > z:
+                self.lst_above.append(idx)
+            else:
+                print("facet " + idx + " of model " + self.name + " is under initial slicing plan, it will be ignored")
+                
+            idx += 1
+
+    def update_slicing_plan(self, z):
+        """ Update list of facets according to the new slicing plan """
+
+        # First, remove facet that are now under the new slicing plan
+        for p in self.lst_intersect:            
+            facet = self.mesh.points[p]
+            zmax = max(facet[2], max(facet[5], facet[8]))
+
+            if z > zmax: 
+                self.lst_intersect.remove(p)
+
+        # Then, look for facets that now intersect with the new slicing plan
+        for p in self.lst_above:            
+            facet = self.mesh.points[p]
+            zmin = min(facet[2], min(facet[5], facet[8]))
+        
+            if z >= zmin: 
+                self.lst_above.remove(p)
+                self.lst_intersect.append(p)

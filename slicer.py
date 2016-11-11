@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import numpy
+import numpy as np
 import stl
 
 import model, ui
@@ -124,4 +124,16 @@ class slicer:
 
         self.arrange(models)
 
+        # Initialize slicing plan & maximal z slicing value 
+        slicing_z_max = -99999.0
         
+        for m in models:
+            m.set_slicing_plan(0.0)
+            if slicing_z_max < m.bbox_max[2]:
+                slicing_z_max = m.bbox_max[2]
+
+        # Slicing loop
+        for z in np.arange(self.config["quality"], slicing_z_max + self.config["quality"], self.config["quality"]):
+            for m in models:
+                m.update_slicing_plan(z)
+                
