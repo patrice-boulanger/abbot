@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
+from decimal import *
+# Numpy
 import numpy as np
 import stl
-
+# Abbot
 import model, ui
 
 class slicer:
@@ -108,7 +110,7 @@ class slicer:
 
     def intercept2d(self, x0, y0, x1, y1, y):
         """ Apply the intercept theorem in 2D """
-        return x0 + (y - y0) / (y1 - y0) * (x1 - x0)
+        return x0 + (x1 - x0) * (y - y0) / (y1 - y0)
                     
     def slice_facet(self, facet, z):
         """ Slice a facet at height z """
@@ -121,17 +123,20 @@ class slicer:
         v0 = [ facet[0], facet[1], facet[2] ]
         v1 = [ facet[3], facet[4], facet[5] ]
         v2 = [ facet[6], facet[7], facet[8] ]
-
+                
         # If 2 vertices of the facet are in the slicing plan, add the edge
         if v0[2] == z and v1[2] == z:
             p[0][0], p[0][1], p[1][0], p[1][1] = v0[0], v0[1], v1[0], v1[1]
+            n = 2
         elif v0[2] == z and v2[2] == z:
             p[0][0], p[0][1], p[1][0], p[1][1] = v0[0], v0[1], v2[0], v2[1]
+            n = 2
         elif v1[2] == z and v2[2] == z:
-            p[0][0], p[0][1], p[1][0], p[1][1] = v1[0], v1[1], v2[0], v2[1]            
+            p[0][0], p[0][1], p[1][0], p[1][1] = v1[0], v1[1], v2[0], v2[1]
+            n = 2
         else:
             # Compute distance between the slicing plan and each vertex
-            dv0, dv1, dv2 = z - v0[2], z - v1[2], z - v2[2]
+            dv0, dv1, dv2 = v0[2] - z, v1[2] - z, v2[2] - z
 
 	    # Slicing plan intersects the triangle
 	    # Check which edges of the triangle is intersecting the plan and use the interception theorem
@@ -150,7 +155,7 @@ class slicer:
                 p[n][0] = self.intercept2d(v0[0], v0[2], v2[0], v2[2], z)
                 p[n][1] = self.intercept2d(v0[1], v0[2], v2[1], v2[2], z)
                 n += 1
-
+                
 	    # We still have to check if one of the vertices intersects the slicing plan.
 	    # If yes, this is the last point of our segment, the other point has been
 	    # filled at the previous step.
@@ -164,9 +169,49 @@ class slicer:
                 if v2[2] == z:
                     p[n][0], p[n][1] = v2[0], v2[1]
                     n += 1
-                    
-        return p[0][0], p[0][1], p[1][0], p[1][1]
+
+        return n, p[0][0], p[0][1], p[1][0], p[1][1]
+
+    def optimize_path(self, segs):
+        """ Take a list of segments and organize it to a continuous list of points """
+        paths = []
         
+        while len(segs) > 0:
+            # List of tuples
+            path = [] # [ (x,y), (x,y), ... (x,y) ]
+            
+            # Initialize the path with the 2 first points 
+            path.append((segs[0][0], segs[0][1]))
+            path.append((segs[0][2], segs[0][3]))
+            del segs[0]
+
+            idx = 0
+            while idx < len(segs):
+                s = segs[idx] # (xa, ya, xb, yb)
+                
+                if path[0] == (s[0], s[1]):
+                    path.insert(0, (s[2], s[3]))
+                    del segs[idx]
+                    idx = -1
+                elif path[0] == (s[2], s[3]):
+                    path.insert(0, (s[0], s[1]))
+                    del segs[idx]
+                    idx = -1
+                elif path[-1] == (s[0], s[1]):
+                    path.append((s[2], s[3]))
+                    del segs[idx]
+                    idx = -1
+                elif path[-1] == (s[2], s[3]):
+                    path.append((s[0], s[1]))
+                    del segs[idx]
+                    idx = -1
+                
+                idx = idx + 1
+
+            paths.append(path)
+
+        return paths
+                
     def run(self):
         """ Slicer main loop """
 
@@ -189,7 +234,7 @@ class slicer:
         self.arrange(models)
 
         # Initialize slicing plan & maximal z slicing value 
-        slicing_z_max = -99999.0
+        slicing_z_max = 0.0
         
         for m in models:
             m.set_slicing_plan(0.0)
@@ -202,26 +247,34 @@ class slicer:
         # Slicing loop
         layers = []
                 
-        for z in np.arange(float(self.config["quality"]), slicing_z_max + float(self.config["quality"]), float(self.config["quality"])):            
+        for z in np.arange(0, slicing_z_max + float(self.config["quality"]), float(self.config["quality"])):
             for m in models:
-                m.update_slicing_plan(z)
-
                 segs = []
                 
                 for p in m.lst_intersect:
                     facet = m.mesh.points[p]
-                    (xa, ya, xb, yb) = self.slice_facet(facet, z)
-
-                    if xa == None:
+                    (n, xa, ya, xb, yb) = self.slice_facet(facet, z)
+                    
+                    if n == 2:
+                        segs.append((xa, ya, xb, yb))
+                    else:
                         continue
                     
-                    segs.append((xa, ya, xb, yb))
-
                 if len(segs) > 0:
-                    layers.append(segs)
-
+                    paths = self.optimize_path(segs)
+                    layers.append(paths)
+                
+                m.update_slicing_plan(z)
+                
         if verbose:
             print("Slicing done, " + str(len(layers)) + " layers extracted")
-        
-        for s in layers[0]:
-            print("({0:.5f}, {1:.5f}, {2:.5f}, {3:.5f})".format(s[0], s[1], s[2], s[3]))
+    
+        z = 0        
+        for layer in layers:
+            print("Z = {0:.3f}".format(z))
+
+            for path in layer:
+                print(str(path))
+                
+            z += float(self.config["quality"])
+
