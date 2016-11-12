@@ -11,7 +11,8 @@ def usage():
     print(" -c file,  --config=file   loads configuration from 'file'")
     print(" -h,       --help          print this help message")
     print(" -m file,  --model=file    loads model from 'file'")
-    print(" -o file,  --output=file   write the output to 'file'") 
+    print(" -o file,  --output=file   write the output to 'file'")
+    print(" -s k=v,   --set=k=v       set the value of the key 'k' to value 'v'")
     print(" -v,       --verbose       be verbose")
     
 def main(argv):
@@ -20,7 +21,7 @@ def main(argv):
     app = slicer.slicer()
 
     try:
-        opts, args = getopt.getopt(argv, "c:hm:o:v", [ "config", "help", "model", "output", "verbose" ])
+        opts, args = getopt.getopt(argv, "c:hm:o:s:v", [ "config", "help", "model", "output", "set", "verbose" ])
     except getopt.GetoptError as err:
         print(str(err))
         usage()
@@ -46,6 +47,9 @@ def main(argv):
             models.append(a)
         elif o == '-o':
             output = a
+        elif o == '-s':
+            k, v = a.split("=")
+            app.config[k] = v
         elif o == '-v':
             verbose = True
         else:
@@ -69,5 +73,3 @@ def main(argv):
 if __name__ == "__main__":
     main(sys.argv[1:])
     sys.exit(0)
-
-    

@@ -7,8 +7,6 @@ class model:
     def __init__(self, name, mesh):
         """ Constructor, takes numpy STL data as argument """
 
-        print("Create model from " + name)
-        
         self.name = name
         self.mesh = mesh
 
