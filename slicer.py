@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 
-from decimal import *
 # Numpy
 import numpy as np
 import stl
 # Abbot
-import model, ui
+import model, ui, gcode
 
-class slicer:
+class Slicer:
     """ Abbot slicer """
 
     config = dict()
@@ -20,6 +19,7 @@ class slicer:
 
         # Printer
         self.config["printer"] = dict()
+        self.config["printer"]["gcode"] = "marlin"
         self.config["printer"]["min"] = [ 0, 0, 0 ]
         self.config["printer"]["max"] = [ 200, 200, 200 ]
         
@@ -29,12 +29,12 @@ class slicer:
         self.config["extruder"]["count"] = 1
 
         self.config["extruder"]["0"] = dict()        
-        self.config["extruder"]["0"]["diameter"] = 0.35
-        self.config["extruder"]["0"]["temp"] = 200
+        self.config["extruder"]["0"]["nozzle_diameter"] = 0.35
+        self.config["extruder"]["0"]["filament_diameter"] = 1.75 
+        self.config["extruder"]["0"]["temperature"] = 200
         self.config["extruder"]["0"]["offset_x"] = 0
         self.config["extruder"]["0"]["offset_y"] = 0
         self.config["extruder"]["0"]["fan_speed"] = 255
-        
         self.config["extruder"]["0"]["retract"] = dict()
         self.config["extruder"]["0"]["retract"]["speed"] = 110
         self.config["extruder"]["0"]["retract"]["distance"] = 4
@@ -186,7 +186,7 @@ class slicer:
             del segs[0]
 
             idx = 0
-            while idx < len(segs):
+            while len(segs) > 0 and idx < len(segs):
                 s = segs[idx] # (xa, ya, xb, yb)
                 
                 if path[0] == (s[0], s[1]):
@@ -268,13 +268,14 @@ class slicer:
                 
         if verbose:
             print("Slicing done, " + str(len(layers)) + " layers extracted")
-    
-        z = 0        
-        for layer in layers:
-            print("Z = {0:.3f}".format(z))
 
+        translator = gcode.GCodeTranslator(self.config)
+        
+        for layer in layers:
             for path in layer:
-                print(str(path))
-                
-            z += float(self.config["quality"])
+                translator.travel(dest = path[0], speed = self.config["speed"]["travel"])
+
+                for p in path[1:]:
+                    translator.draw(p)
+                    
 

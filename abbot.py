@@ -18,7 +18,7 @@ def usage():
 def main(argv):
     """ Program entry point """
 
-    app = slicer.slicer()
+    app = slicer.Slicer()
 
     try:
         opts, args = getopt.getopt(argv, "c:hm:o:s:v", [ "config", "help", "model", "output", "set", "verbose" ])
