@@ -129,7 +129,7 @@ class Slicer:
         return n, p[0][0], p[0][1], p[1][0], p[1][1]
     
     def build_slicing_plan(self):
-        """ Slice the whole scene, returns a list of layers. Each layer is a list of unorganized segments """
+        """ Slices the whole scene, returns a list of layers. Each slice is a list of unorganized segments """
 
         verbose = self.config["verbose"]
 
@@ -152,7 +152,7 @@ class Slicer:
             print(" Slicing height is " + str(z_max) + "mm")
             
         # Slicing loop
-        layers = []
+        slices = []
                 
         for z in np.arange(0, z_max, z_incr):
             for m in self.models:
@@ -168,13 +168,13 @@ class Slicer:
                         continue
                     
                 if len(segs) > 0:
-                    layers.append(segs)
+                    slices.append(segs)
 
                 # Increment the slicing height and start again
                 m.update_slicing_plan(z)
                 
         if verbose:
-            print(" {0} layers extracted".format(len(layers)))
+            print(" {0} slices extracted".format(len(slices)))
 
-        return layers
+        return slices
 
