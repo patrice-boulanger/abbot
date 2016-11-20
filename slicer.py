@@ -64,9 +64,9 @@ class Slicer:
                 for m in self.models:
                     m.translate(0, ty, 0)            
 
-    def intercept2d(self, x0, y0, x1, y1, y):
+    def intercept2d(self, x0, y0, x1, y1, y, precision = 5):
         """ Apply the intercept theorem in 2D """
-        return x0 + (x1 - x0) * (y - y0) / (y1 - y0)
+        return round(x0 + (x1 - x0) * (y - y0) / (y1 - y0), precision) 
                     
     def slice_facet(self, facet, z):
         """ Slice a facet at height z """
@@ -128,7 +128,7 @@ class Slicer:
 
         return n, p[0][0], p[0][1], p[1][0], p[1][1]
     
-    def run(self):
+    def build_slicing_plan(self):
         """ Slice the whole scene, returns a list of layers. Each layer is a list of unorganized segments """
 
         verbose = self.config["verbose"]
