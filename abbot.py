@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, getopt
-import json
+import os, sys, getopt, json
 
 # Our stuffs
 from slicer import Slicer
@@ -17,7 +16,6 @@ def usage():
     print(" -h,       --help          print this help message")
     print(" -m file,  --model=file    loads model from 'file'")
     print(" -o file,  --output=file   write the output to 'file'")
-    print(" -s k=v,   --set=k=v       set the value of the key 'k' to value 'v'")
     print(" -v,       --verbose       be verbose")
 
 def init_configuration(config):
@@ -68,9 +66,13 @@ def main(argv):
 
     config = dict()
     init_configuration(config)
+    config_loaded = False
     
     filenames = []
     models = []
+
+    output = None
+    verbose = False
     
     try:
         opts, args = getopt.getopt(argv, "c:hm:o:s:v", [ "config", "help", "model", "output", "set", "verbose" ])
@@ -84,6 +86,7 @@ def main(argv):
             try:
                 with open(a, "r") as f:
                     config = json.load(f)
+                    config_loaded = True
             except Exception as err:
                 print(str(err))
                 sys.exit(1)                
@@ -93,14 +96,28 @@ def main(argv):
         elif o == '-m':
             filenames.append(a)
         elif o == '-o':
-            config["output"] = a
+            output = a
         elif o == '-v':
-            config["verbose"] = True
+            verbose = True
         else:
             print("invalid option " + o)
             usage()
             sys.exit(1)
 
+    # If no configuration has been specified, try to load default file 
+    if not config_loaded and os.path.isfile("./abbot.json"):
+        try:
+            with open("./abbot.json", "r") as f:
+                config = json.load(f)
+        except Exception as err:
+            print(str(err))
+            sys.exit(1)                
+
+    if output != None:
+        config["output"] = output
+
+    config["verbose"] = verbose
+            
     if len(filenames) == 0:
         print("no filenames specified")
         usage()
@@ -115,14 +132,15 @@ def main(argv):
                  
     config["filenames"] = filenames
 
-    slcr = Slicer(config, models)
-    layers = slcr.run()
+    # Let's go
+    slicer = Slicer(config, models)
+    slices = slicer.build_slicing_plan()
 
-    optm = Optimizer(config)
-    plan = optm.optimize(layers)
+    optimiser = Optimizer(config)
+    layers = optimiser.optimize(slices)
 
     gcode = GCode(config)
-    gcode.dump(plan)
+    gcode.dump(layers)
     
 if __name__ == "__main__":
     main(sys.argv[1:])

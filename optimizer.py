@@ -70,7 +70,7 @@ class Optimizer:
                         
                     del segs[idx]
                     idx = -1
-                
+                    
                 idx = idx + 1
 
             paths.append(path)
