@@ -1,74 +1,30 @@
 #!/usr/bin/env python3
 
-# Numpy
 import numpy as np
 import stl
-# Abbot
-import model, ui, gcode
+
+from model import Model
 
 class Slicer:
-    """ Abbot slicer """
-
-    config = dict()
-    
-    def __init__(self):
+    """ """
+     
+    def __init__(self, config, models):
         """ Constructor """
-
-        # Basic default configuration
-        # Distance are expressed in mm and speeds in mm/s
-
-        # Printer
-        self.config["printer"] = dict()
-        self.config["printer"]["gcode"] = "marlin"
-        self.config["printer"]["min"] = [ 0, 0, 0 ]
-        self.config["printer"]["max"] = [ 200, 200, 200 ]
+        self.config = config
+        self.models = models
         
-        # Extruder(s)
-        self.config["extruder"] = dict()
-        
-        self.config["extruder"]["count"] = 1
-
-        self.config["extruder"]["0"] = dict()        
-        self.config["extruder"]["0"]["nozzle_diameter"] = 0.35
-        self.config["extruder"]["0"]["filament_diameter"] = 1.75 
-        self.config["extruder"]["0"]["temperature"] = 200
-        self.config["extruder"]["0"]["offset_x"] = 0
-        self.config["extruder"]["0"]["offset_y"] = 0
-        self.config["extruder"]["0"]["fan_speed"] = 255
-        self.config["extruder"]["0"]["retract"] = dict()
-        self.config["extruder"]["0"]["retract"]["speed"] = 110
-        self.config["extruder"]["0"]["retract"]["distance"] = 4
-                
-        # Layer height
-        self.config["quality"] = 0.2
-        
-        # Speeds
-        self.config["speed"] = dict()
-        self.config["speed"]["print"] = 40
-        self.config["speed"]["travel"] = 150
-        self.config["speed"]["first_layer"] = 30
-        self.config["speed"]["outer_perimeter"] = 30
-        self.config["speed"]["inner_perimeter"] = 40
-        self.config["speed"]["infill"] = 60
-        self.config["speed"]["skin_infill"] = 30
-        
-        # Infill
-        self.config["thickness"] = dict()
-        self.config["thickness"]["shell"] = 0.7
-        self.config["thickness"]["top_bottom"] = 0.6
-
-    def arrange(self, models):
+    def arrange(self):
         """ Packs models on the printer plate according to their bounding box """
 
         # Sort the models order by decreasing surface
-        models.sort(reverse = True, key = lambda m: (m.bbox_max[0] - m.bbox_min[0]) * (m.bbox_max[1] - m.bbox_min[1]))
+        self.models.sort(reverse = True, key = lambda m: (m.bbox_max[0] - m.bbox_min[0]) * (m.bbox_max[1] - m.bbox_min[1]))
         # Divide the printer plate into a list of areas (X offset, Y offset, width, height),
         # Initialized at 90% of the size of the plate
         areas = [ [0, 0, 0.9 * self.config["printer"]["max"][0], 0.9 * self.config["printer"]["max"][1]] ]
 
         gap = 10 # Minimum gap betweem 2 models
         
-        for t in models:
+        for t in self.models:
             tx = -t.bbox_min[0]
             ty = -t.bbox_min[1]
             tz = -t.bbox_min[2] # Force the model to lay on the plate
@@ -105,7 +61,7 @@ class Slicer:
         for a in areas:
             if a[2] == 0.9 * self.config["printer"]["max"][0]:
                 ty = a[3] / 2
-                for m in models:
+                for m in self.models:
                     m.translate(0, ty, 0)            
 
     def intercept2d(self, x0, y0, x1, y1, y):
@@ -171,88 +127,39 @@ class Slicer:
                     n += 1
 
         return n, p[0][0], p[0][1], p[1][0], p[1][1]
-
-    def optimize_path(self, segs):
-        """ Take a list of segments and organize it to a continuous list of points """
-        paths = []
-        
-        while len(segs) > 0:
-            # List of tuples
-            path = [] # [ (x,y), (x,y), ... (x,y) ]
-            
-            # Initialize the path with the 2 first points 
-            path.append((segs[0][0], segs[0][1]))
-            path.append((segs[0][2], segs[0][3]))
-            del segs[0]
-
-            idx = 0
-            while len(segs) > 0 and idx < len(segs):
-                s = segs[idx] # (xa, ya, xb, yb)
-                
-                if path[0] == (s[0], s[1]):
-                    path.insert(0, (s[2], s[3]))
-                    del segs[idx]
-                    idx = -1
-                elif path[0] == (s[2], s[3]):
-                    path.insert(0, (s[0], s[1]))
-                    del segs[idx]
-                    idx = -1
-                elif path[-1] == (s[0], s[1]):
-                    path.append((s[2], s[3]))
-                    del segs[idx]
-                    idx = -1
-                elif path[-1] == (s[2], s[3]):
-                    path.append((s[0], s[1]))
-                    del segs[idx]
-                    idx = -1
-                
-                idx = idx + 1
-
-            paths.append(path)
-
-        return paths
-                
+    
     def run(self):
-        """ Slicer main loop """
+        """ Slice the whole scene, returns a list of layers. Each layer is a list of unorganized segments """
 
         verbose = self.config["verbose"]
-        models = []
-        
-        # Load models
-        for m in self.config["models"]:
-            try:
-                if verbose:
-                    print("Loading " + m)
-                    
-                mdl = model.model(m, stl.mesh.Mesh.from_file(m))
-                models.append(mdl)
-                
-            except Exception as err:
-                print(str(err))
-                return
-
-        self.arrange(models)
-
-        # Initialize slicing plan & maximal z slicing value 
-        slicing_z_max = 0.0
-        
-        for m in models:
-            m.set_slicing_plan(0.0)
-            if slicing_z_max < m.bbox_max[2]:
-                slicing_z_max = m.bbox_max[2]
 
         if verbose:
-            print("Slicing height is " + str(slicing_z_max) + "mm")
+            print("Start slicing")
+            
+        self.arrange()
+
+        # Initialize slicing plan & maximal Z slicing value 
+        z_max = 0.0
+        
+        for m in self.models:
+            m.set_slicing_plan(0.0)
+            if z_max < m.bbox_max[2]:
+                z_max = m.bbox_max[2]
+
+        z_incr = self.config["quality"]
+        
+        if verbose:
+            print(" Slicing height is " + str(z_max) + "mm")
             
         # Slicing loop
         layers = []
                 
-        for z in np.arange(0, slicing_z_max + float(self.config["quality"]), float(self.config["quality"])):
-            for m in models:
+        for z in np.arange(0, z_max, z_incr):
+            for m in self.models:
                 segs = []
                 
-                for p in m.lst_intersect:
-                    facet = m.mesh.points[p]
+                for i in m.lst_intersect:
+                    facet = m.mesh.points[i]
                     (n, xa, ya, xb, yb) = self.slice_facet(facet, z)
                     
                     if n == 2:
@@ -261,21 +168,13 @@ class Slicer:
                         continue
                     
                 if len(segs) > 0:
-                    paths = self.optimize_path(segs)
-                    layers.append(paths)
-                
+                    layers.append(segs)
+
+                # Increment the slicing height and start again
                 m.update_slicing_plan(z)
                 
         if verbose:
-            print("Slicing done, " + str(len(layers)) + " layers extracted")
+            print(" {0} layers extracted".format(len(layers)))
 
-        translator = gcode.GCodeTranslator(self.config)
-        
-        for layer in layers:
-            for path in layer:
-                translator.travel(dest = path[0], speed = self.config["speed"]["travel"])
-
-                for p in path[1:]:
-                    translator.draw(p)
-                    
+        return layers
 

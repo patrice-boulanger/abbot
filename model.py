@@ -1,15 +1,18 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import stl
 
-class model:
+class Model:
         
-    def __init__(self, name, mesh):
-        """ Constructor, takes numpy STL data as argument """
-
+    def __init__(self, name):
+        """ Constructor, load data from file """
         self.name = name
-        self.mesh = mesh
 
+        if self.name.lower().endswith(".stl"):
+            self.mesh = stl.mesh.Mesh.from_file(self.name)
+        else:
+            raise ValueError("unknown model file format")
+        
         # models bounds
         self.bbox_min = [ None, None, None ]
         self.bbox_max = [ None, None, None ]
@@ -17,7 +20,7 @@ class model:
 
         self.lst_intersect = [] # facets that intersect the slicing plan
         self.lst_above = [] # facets above the slicing plan
-        
+
     def translate(self, tx, ty, tz):
         """ Translate the mesh """
         items = [ [0, 3, 6],  # x
@@ -37,7 +40,7 @@ class model:
             self.update_bounds()
             
     def update_bounds(self):
-        """ Computes models bounds """
+        """ Computes model bounds """
 
         self.bbox_min[0] = self.bbox_max[0] = stl.Dimension.X
         self.bbox_min[1] = self.bbox_max[1] = stl.Dimension.Y
