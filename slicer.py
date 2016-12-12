@@ -127,7 +127,7 @@ class Slicer:
                     n += 1
 
         if n == 0:
-            print("no intersection at " + str(z) + " for " + str(v0) + " - " + str(v1) + " - " +str(v2))
+            print("no intersection at " + str(z) + " for " + str(v0) + " - " + str(v1) + " - " + str(v2), file = sys.stderr)
                     
         return n, p[0][0], p[0][1], p[1][0], p[1][1]
     
@@ -137,28 +137,29 @@ class Slicer:
         verbose = self.config["verbose"]
 
         if verbose:
-            print("Start slicing")
+            print("Start slicing", file = sys.stderr)
             
         self.arrange()
 
-        # Initialize slicing plan & maximal Z slicing value 
+        # Maximal Z slicing value 
         z_max = 0.0
         
         for m in self.models:
-            m.set_slicing_plan(0.0)
             if z_max < m.bbox_max[2]:
                 z_max = m.bbox_max[2]
 
         z_incr = float(self.config["quality"])
         
         if verbose:
-            print(" Slicing height is " + str(z_max) + "mm")
+            print(" Slicing height is " + str(z_max) + "mm", file = sys.stderr)
             
         # Slicing loop
         layers = []
                 
         for z in np.arange(0, z_max, z_incr):
             for m in self.models:
+                m.set_slicing_plan(z)
+
                 segs = []
                 
                 for i in m.lst_intersect:
@@ -172,12 +173,9 @@ class Slicer:
                     
                 if len(segs) > 0:
                     layers.append(segs)
-
-                # Increment the slicing height and start again
-                m.update_slicing_plan(z)
                 
         if verbose:
-            print(" {0} layers extracted".format(len(layers)))
+            print(" {0} layers extracted".format(len(layers)), file = sys.stderr)
 
         return layers
 

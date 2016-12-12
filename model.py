@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import stl
+import sys, stl
 
 class Model:
         
@@ -19,7 +19,6 @@ class Model:
         self.update_bounds()
 
         self.lst_intersect = [] # facets that intersect the slicing plan
-        self.lst_above = [] # facets above the slicing plan
 
     def translate(self, tx, ty, tz):
         """ Translate the mesh """
@@ -59,6 +58,8 @@ class Model:
         """ Compute internal list of facets for the given slicing plan """
 
         idx = 0
+
+        self.lst_intersect = []
         
         for p in self.mesh.points:
             zmin = min(p[2], min(p[5], p[8]))
@@ -66,38 +67,5 @@ class Model:
 
             if zmin <= z and zmax >= z:
                 self.lst_intersect.append(idx)
-            elif zmin > z:
-                self.lst_above.append(idx)
-            else:
-                print("facet " + idx + " of model " + self.name + " is under initial slicing plan, it will be ignored")
-                
+
             idx += 1
-
-    def update_slicing_plan(self, z):
-        """ Update list of facets according to the new slicing plan """
-
-        # First, remove facet that are now under the new slicing plan
-        nlst = []
-        
-        for p in self.lst_intersect:            
-            facet = self.mesh.points[p]
-            zmax = max(facet[2], max(facet[5], facet[8]))
-
-            if z <= zmax:
-                nlst.append(p)
-
-        self.lst_intersect = nlst
-
-        # Then, look for facets that now intersect with the new slicing plan
-        nlst2 = []
-        
-        for p in self.lst_above:            
-            facet = self.mesh.points[p]
-            zmin = min(facet[2], min(facet[5], facet[8]))
-        
-            if z >= zmin:
-                self.lst_intersect.append(p)
-            else:
-                nlst2.append(p)
-
-        self.lst_above = nlst2
