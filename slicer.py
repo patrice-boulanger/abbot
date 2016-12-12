@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 import numpy as np
 import stl
 
@@ -23,7 +24,6 @@ class Slicer:
         areas = [ [0, 0, 0.9 * self.config["printer"]["max"][0], 0.9 * self.config["printer"]["max"][1]] ]
 
         gap = 10 # Minimum gap betweem 2 models
-        
         for t in self.models:
             tx = -t.bbox_min[0]
             ty = -t.bbox_min[1]
@@ -64,10 +64,10 @@ class Slicer:
                 for m in self.models:
                     m.translate(0, ty, 0)            
 
-    def intercept2d(self, x0, y0, x1, y1, y, precision = 5):
+    def intercept2d(self, x0, y0, x1, y1, y, precision = 8):
         """ Apply the intercept theorem in 2D """
         return round(x0 + (x1 - x0) * (y - y0) / (y1 - y0), precision) 
-                    
+   
     def slice_facet(self, facet, z):
         """ Slice a facet at height z """
 
@@ -81,13 +81,13 @@ class Slicer:
         v2 = [ facet[6], facet[7], facet[8] ]
                 
         # If 2 vertices of the facet are in the slicing plan, add the edge
-        if v0[2] == z and v1[2] == z:
+        if np.isclose(v0[2], z) and np.isclose(v1[2], z):
             p[0][0], p[0][1], p[1][0], p[1][1] = v0[0], v0[1], v1[0], v1[1]
             n = 2
-        elif v0[2] == z and v2[2] == z:
+        elif np.isclose(v0[2], z) and np.isclose(v2[2], z):
             p[0][0], p[0][1], p[1][0], p[1][1] = v0[0], v0[1], v2[0], v2[1]
             n = 2
-        elif v1[2] == z and v2[2] == z:
+        elif np.isclose(v1[2], z) and np.isclose(v2[2], z):
             p[0][0], p[0][1], p[1][0], p[1][1] = v1[0], v1[1], v2[0], v2[1]
             n = 2
         else:
@@ -116,16 +116,19 @@ class Slicer:
 	    # If yes, this is the last point of our segment, the other point has been
 	    # filled at the previous step.
             if n == 1:
-                if v0[2] == z:
+                if np.isclose(v0[2], z):
                     p[n][0], p[n][1] = v0[0], v0[1]
                     n += 1
-                if v1[2] == z:
+                if np.isclose(v1[2], z):
                     p[n][0], p[n][1] = v1[0], v1[1]
                     n += 1
-                if v2[2] == z:
+                if np.isclose(v2[2], z):
                     p[n][0], p[n][1] = v2[0], v2[1]
                     n += 1
 
+        if n == 0:
+            print("no intersection at " + str(z) + " for " + str(v0) + " - " + str(v1) + " - " +str(v2))
+                    
         return n, p[0][0], p[0][1], p[1][0], p[1][1]
     
     def build_slicing_plan(self):
@@ -146,7 +149,7 @@ class Slicer:
             if z_max < m.bbox_max[2]:
                 z_max = m.bbox_max[2]
 
-        z_incr = self.config["quality"]
+        z_incr = float(self.config["quality"])
         
         if verbose:
             print(" Slicing height is " + str(z_max) + "mm")

@@ -9,17 +9,20 @@ class Optimizer:
         """ Constructor """
         self.config = config
 
-    def colinear(self, v0, v1, v2):
+    def colinear(self, p0, p1, p2):
         """ Returns true if three 2d points are colinear """
         
-        a, b = [ v0[0] - v1[0], v0[1] - v1[1] ], [ v0[0] - v2[0], v0[1] - v2[1] ]
+        u, v = [ p1[0] - p0[0], p1[1] - p0[1] ], [ p2[0] - p0[0], p2[1] - p0[1] ]
 
-        la = math.sqrt(a[0]*a[0] + a[1]*a[1])
-        lb = math.sqrt(b[0]*b[0] + b[1]*b[1])
+        ulen = math.sqrt(u[0] * u[0] + u[1] * u[1])
+        vlen = math.sqrt(v[0] * v[0] + v[1] * v[1])
 
-        a1, b1 = [ a[0] / la, a[1] / la ], [ b[0] / lb, b[1] / lb ]
+        if ulen > 0.00001 and vlen > 0.00001:
+            u1, v1 = [ u[0] / ulen, u[1] / ulen ], [ v[0] / vlen, v[1] / vlen ]
+        else:
+            return True
         
-        return abs(a1[0]*b1[0] + a1[1]*b1[1]) == 1
+        return 1 - abs(u1[0] * v1[0] + u1[1] * v1[1]) < 0.00001
     
     def points_from_segments(self, segs):
         """ Take a list of segments and organize them into one or several continuous list of points """

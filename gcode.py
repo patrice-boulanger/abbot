@@ -22,8 +22,9 @@ class GCode:
 
         dx, dy = x0 - x1, y0 - y1
         distance = math.sqrt((dx * dx) + (dy * dy))
+        length = (self.nozzle_area * distance) / self.filament_area
 
-        return (self.nozzle_area * distance) / self.filament_area
+        return length
         
     def dump(self, layers):
         z_incr = self.config["quality"]
@@ -41,17 +42,17 @@ class GCode:
 
             print("; layer #" + str(layer_nr))
             for path in layer:
-                print("G0 F{0} X{1:.4} Y{2:.4} Z{3:.4}".format(self.sp_travel, path[0][0], path[0][1], z + z_incr))
+                print("G0 F{0} X{1:.8} Y{2:.8} Z{3:.8}".format(self.sp_travel, path[0][0], path[0][1], z + z_incr))
                     
                 e_len += self.extrusion_length(path[0][0], path[0][1], path[1][0], path[1][1])
 
-                print("G1 F{0} X{1:.4} Y{2:.4} E{3:.4}".format(self.sp_print, path[1][0], path[1][1], e_len))
+                print("G1 F{0} X{1:.8} Y{2:.8} E{3:.12}".format(self.sp_print, path[1][0], path[1][1], e_len))
                 prev[0], prev[1] = path[1][0], path[1][1]
                         
                 for p in path[2:]:
                     e_len += self.extrusion_length(prev[0], prev[1], p[0], p[1])
                             
-                    print("G1 X{0:.4} Y{1:.4} E{2:.4}".format(p[0], p[1], e_len))
+                    print("G1 X{0:.8} Y{1:.8} E{2:.12}".format(p[0], p[1], e_len))
                     prev[0], prev[1] = p[0], p[1]
                             
             layer_nr += 1
