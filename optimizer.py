@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import math
+import math, sys
 
 class Optimizer:
     """ """
@@ -83,7 +83,7 @@ class Optimizer:
     def optimize(self, layers):
 
         if self.config["verbose"]:
-            print("Start optimization")
+            print("Optimization", file = sys.stderr)
         
         # Number of segments in the slicing plan before optimization
         ini_sz = 0
@@ -100,6 +100,7 @@ class Optimizer:
             opt_layers.append(plist)
             
         if self.config["verbose"]:
-            print(" {0} segments ({1} points) -> {2} points ({3:.1f}%)".format(ini_sz, 2 * ini_sz, new_sz, (new_sz * 100 / ini_sz) - 100))
+            print(" {0} segments ({1} points) -> {2} points ({3:.1f}%)".format(ini_sz, 2 * ini_sz, new_sz, (new_sz * 100 / ini_sz) - 100),
+                  file = sys.stderr)
 
         return opt_layers
