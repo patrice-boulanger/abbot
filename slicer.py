@@ -95,7 +95,7 @@ class Slicer:
             dv0, dv1, dv2 = v0[2] - z, v1[2] - z, v2[2] - z
 
 	    # Slicing plan intersects the triangle
-	    # Check which edges of the triangle is intersecting the plan and use the interception theorem
+	    # Check which edge of the triangle intersects the plan and use the interception theorem
 	    # to interpolate the coordinates            
             if dv0 * dv1 < 0:
                 p[n][0] = self.intercept2d(v0[0], v0[2], v1[0], v1[2], z)
@@ -125,9 +125,6 @@ class Slicer:
                 if np.isclose(v2[2], z):
                     p[n][0], p[n][1] = v2[0], v2[1]
                     n += 1
-
-        if n == 0:
-            print("no intersection at " + str(z) + " for " + str(v0) + " - " + str(v1) + " - " + str(v2), file = sys.stderr)
                     
         return n, p[0][0], p[0][1], p[1][0], p[1][1]
     
@@ -137,7 +134,7 @@ class Slicer:
         verbose = self.config["verbose"]
 
         if verbose:
-            print("Start slicing", file = sys.stderr)
+            print("Slicing", file = sys.stderr)
             
         self.arrange()
 
@@ -162,8 +159,7 @@ class Slicer:
 
                 segs = []
                 
-                for i in m.lst_intersect:
-                    facet = m.mesh.points[i]
+                for facet in m.lst_intersect:
                     (n, xa, ya, xb, yb) = self.slice_facet(facet, z)
                     
                     if n == 2:
