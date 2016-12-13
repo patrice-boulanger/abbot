@@ -41,9 +41,8 @@ class Model:
     def update_bounds(self):
         """ Computes model bounds """
 
-        self.bbox_min[0] = self.bbox_max[0] = stl.Dimension.X
-        self.bbox_min[1] = self.bbox_max[1] = stl.Dimension.Y
-        self.bbox_min[2] = self.bbox_max[2] = stl.Dimension.Z
+        self.bbox_min[0] = self.bbox_min[1] = self.bbox_min[2] = 99999.0
+        self.bbox_max[0] = self.bbox_max[1] = self.bbox_max[2] = -1.0
         
         for p in self.mesh.points:
             # p contains (x, y, z)
@@ -55,17 +54,13 @@ class Model:
             self.bbox_min[2] = min(p[stl.Dimension.Z], self.bbox_min[2])
         
     def set_slicing_plan(self, z):
-        """ Compute internal list of facets for the given slicing plan """
+        """ Compute internal list of facets that intersect w/ the slicing plan """
 
-        idx = 0
-
-        self.lst_intersect = []
+        del self.lst_intersect[:]
         
         for p in self.mesh.points:
             zmin = min(p[2], min(p[5], p[8]))
             zmax = max(p[2], max(p[5], p[8]))
 
             if zmin <= z and zmax >= z:
-                self.lst_intersect.append(idx)
-
-            idx += 1
+                self.lst_intersect.append(p)
