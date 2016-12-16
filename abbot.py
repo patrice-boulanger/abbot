@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import os, sys, getopt, json
 
@@ -136,8 +136,8 @@ def main(argv):
     slicer = Slicer(config, models)
     slices = slicer.build_slicing_plan()
 
-    optimiser = Optimizer(config)
-    layers = optimiser.optimize(slices)
+    optimizer = Optimizer(config)
+    layers = optimizer.optimize(slices)
 
     gcode = GCode(config)
     gcode.dump(layers)
