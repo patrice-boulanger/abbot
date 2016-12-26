@@ -3,9 +3,10 @@
 import sys
 import numpy as np
 import stl
+from timeit import default_timer as timer
 
 from model import Model
-from timeit import default_timer as timer
+from util import fequals
 
 class Slicer:
     """ """
@@ -94,17 +95,17 @@ class Slicer:
         v2 = [ facet[6], facet[7], facet[8] ]
 
         # Check if the facet is plane
-        if np.isclose(v0[2], z) and np.isclose(v1[2], z) and np.isclose(v2[2], z):
+        if fequals(v0[2], z) and fequals(v1[2], z) and fequals(v2[2], z):
             return 0, None, None, None, None        
         
         # If 2 vertices of the facet are in the slicing plan, add the edge
-        if np.isclose(v0[2], z) and np.isclose(v1[2], z):
+        if fequals(v0[2], z) and fequals(v1[2], z):
             p[0][0], p[0][1], p[1][0], p[1][1] = v0[0], v0[1], v1[0], v1[1]
             n = 2
-        elif np.isclose(v0[2], z) and np.isclose(v2[2], z):
+        elif fequals(v0[2], z) and fequals(v2[2], z):
             p[0][0], p[0][1], p[1][0], p[1][1] = v0[0], v0[1], v2[0], v2[1]
             n = 2
-        elif np.isclose(v1[2], z) and np.isclose(v2[2], z):
+        elif fequals(v1[2], z) and fequals(v2[2], z):
             p[0][0], p[0][1], p[1][0], p[1][1] = v1[0], v1[1], v2[0], v2[1]
             n = 2
         else:
@@ -133,13 +134,13 @@ class Slicer:
 	    # If yes, this is the last point of our segment, the other point has been
 	    # filled at the previous step.
             if n == 1:
-                if np.isclose(v0[2], z):
+                if fequals(v0[2], z):
                     p[n][0], p[n][1] = v0[0], v0[1]
                     n += 1
-                if np.isclose(v1[2], z):
+                if fequals(v1[2], z):
                     p[n][0], p[n][1] = v1[0], v1[1]
                     n += 1
-                if np.isclose(v2[2], z):
+                if fequals(v2[2], z):
                     p[n][0], p[n][1] = v2[0], v2[1]
                     n += 1
                     
@@ -187,7 +188,7 @@ class Slicer:
                     (n, xa, ya, xb, yb) = self.slice_facet(facet, z)
                     
                     if n == 2:
-                        if not np.isclose(xa, xb) or not np.isclose(ya, yb):
+                        if not fequals(xa, xb) or not fequals(ya, yb):
                             segs.append((xa, ya, xb, yb))
                     else:
                         continue

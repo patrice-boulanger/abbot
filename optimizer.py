@@ -4,6 +4,8 @@ import math, sys
 import numpy as np
 from timeit import default_timer as timer
 
+from util import fequals
+
 class Optimizer:
     """ """
 
@@ -19,12 +21,12 @@ class Optimizer:
         ulen = math.sqrt(u[0] * u[0] + u[1] * u[1])
         vlen = math.sqrt(v[0] * v[0] + v[1] * v[1])
 
-        if np.isclose(ulen, 0) or np.isclose(vlen, 0):
+        if fequals(ulen, 0) or fequals(vlen, 0):
             return True
         
         u1, v1 = [ u[0] / ulen, u[1] / ulen ], [ v[0] / vlen, v[1] / vlen ]
         
-        return np.isclose(1, abs(u1[0] * v1[0] + u1[1] * v1[1]))
+        return fequals(1, abs(u1[0] * v1[0] + u1[1] * v1[1]))
     
     def points_from_segments(self, segs):
         """ Take a list of segments and organize them into one or several continuous lists of points.
@@ -37,7 +39,7 @@ class Optimizer:
             path = [] # [ (x,y), (x,y), ... (x,y) ]
             
             # Initialize the path with the 2 first points
-            assert(not np.isclose(segs[0][0], segs[0][2]) or not np.isclose(segs[0][1], segs[0][3]))
+            assert(not fequals(segs[0][0], segs[0][2]) or not fequals(segs[0][1], segs[0][3]))
 
             path.append((segs[0][0], segs[0][1]))
             path.append((segs[0][2], segs[0][3]))
@@ -48,7 +50,7 @@ class Optimizer:
             while len(segs) > 0 and idx < len(segs):
                 s = segs[idx] # (xa, ya, xb, yb)
                 
-                if np.isclose(path[0][0], s[0]) and np.isclose(path[0][1], s[1]):
+                if fequals(path[0][0], s[0]) and fequals(path[0][1], s[1]):
                     if self.colinear(path[0], path[1], (s[2], s[3])):
                         path[0] = (s[2], s[3])
                     else:
@@ -56,7 +58,7 @@ class Optimizer:
                         
                     del segs[idx]
                     idx = -1
-                elif np.isclose(path[0][0], s[2]) and np.isclose(path[0][1], s[3]):
+                elif fequals(path[0][0], s[2]) and fequals(path[0][1], s[3]):
                     if self.colinear(path[0], path[1], (s[0], s[1])):
                         path[0] = (s[0], s[1])
                     else:
@@ -64,7 +66,7 @@ class Optimizer:
                         
                     del segs[idx]
                     idx = -1
-                elif np.isclose(path[-1][0], s[0]) and np.isclose(path[-1][1], s[1]):
+                elif fequals(path[-1][0], s[0]) and fequals(path[-1][1], s[1]):
                     if self.colinear(path[-2], path[-1], (s[2], s[3])):
                         path[-1] = (s[2], s[3])
                     else:
@@ -72,7 +74,7 @@ class Optimizer:
                         
                     del segs[idx]
                     idx = -1
-                elif np.isclose(path[-1][0], s[2]) and np.isclose(path[-1][1], s[3]):
+                elif fequals(path[-1][0], s[2]) and fequals(path[-1][1], s[3]):
                     if self.colinear(path[-2], path[-1], (s[0], s[1])):
                         path[-1] = (s[0], s[1])
                     else:
