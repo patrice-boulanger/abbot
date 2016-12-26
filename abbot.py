@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os, sys, getopt, json
+from timeit import default_timer as timer
 
 # Our stuffs
 from slicer import Slicer
@@ -123,13 +124,25 @@ def main(argv):
         usage()
         sys.exit(1)
     else:
+        if verbose:
+            print("Loading files ..." , file = sys.stderr, end = "")
+            sys.stderr.flush()
+            
+        start = timer()
+
         for f in filenames:
             try:
                 models.append(Model(f))
+               
             except Exception as err:
-                print("Loading " + f + ": " + str(err))
+                print("Loading " + f + ": " + str(err), file = sys.stderr)
                 return
-                 
+
+        end = timer()
+
+        if verbose:
+            print(" done ({0:.2}s)".format(end - start), file = sys.stderr)
+            
     config["filenames"] = filenames
 
     # Let's go

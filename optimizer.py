@@ -2,6 +2,7 @@
 
 import math, sys
 import numpy as np
+from timeit import default_timer as timer
 
 class Optimizer:
     """ """
@@ -37,7 +38,10 @@ class Optimizer:
             # Initialize the path with the 2 first points
             path.append((segs[0][0], segs[0][1]))
             path.append((segs[0][2], segs[0][3]))
-                
+
+            if np.isclose(segs[0][0], segs[0][2]) and np.isclose(segs[0][1], segs[0][3]):
+                print("still null segment")
+            
             del segs[0]
 
             idx = 0
@@ -89,8 +93,9 @@ class Optimizer:
     def optimize(self, layers):
 
         if self.config["verbose"]:
-            print("Optimization", file = sys.stderr)
-        
+            print("Optimization ... ", file = sys.stderr)
+            sys.stderr.flush()
+            
         # Number of segments in the slicing plan before optimization
         ini_sz = 0
         # Number of points in the final slicing plan
@@ -98,15 +103,32 @@ class Optimizer:
         # Optimized layers
         opt_layers = []
 
+        cnt = 0
+        
+        start = timer()
+        
         for segs in layers:
-            ini_sz += len(segs) 
-            plist = self.points_from_segments(segs)
-            new_sz += len(plist)
+            if self.config["verbose"]:
+                print(" {:3.2f}%".format(cnt / len(layers) * 100.0), end = "", file = sys.stderr)
+                print("\b\b\b\b\b\b\b\b", end = "", file = sys.stderr)
+                sys.stderr.flush()
             
+            ini_sz += len(segs) 
+            plist = self.points_from_segments(segs)            
+            new_sz += len(plist)
+
             opt_layers.append(plist)
+            cnt += 1
+            
+        end = timer()
             
         if self.config["verbose"]:
-            print(" {0} segments ({1} points) -> {2} points ({3:.1f}%)".format(ini_sz, 2 * ini_sz, new_sz, (new_sz * 100 / ini_sz) - 100),
+            print(" {0} segments ({1} points) -> {2} points ({3:.1f}% in {4:.2f}s)".format(ini_sz,
+                                                                                          2 * ini_sz,
+                                                                                          new_sz,
+                                                                                          (new_sz * 100 / ini_sz) - 100,
+                                                                                          end - start),
                   file = sys.stderr)
+            sys.stderr.flush()
 
         return opt_layers

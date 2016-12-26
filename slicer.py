@@ -5,6 +5,7 @@ import numpy as np
 import stl
 
 from model import Model
+from timeit import default_timer as timer
 
 class Slicer:
     """ """
@@ -16,7 +17,13 @@ class Slicer:
         
     def arrange(self):
         """ Packs models on the printer plate according to their bounding box """
-
+        
+        if self.config["verbose"]:
+            print(" Arrange models on the plate ...", file = sys.stderr, end = "")
+            sys.stderr.flush()
+            
+        start = timer()
+        
         # Sort the models order by decreasing surface
         self.models.sort(reverse = True, key = lambda m: (m.bbox_max[0] - m.bbox_min[0]) * (m.bbox_max[1] - m.bbox_min[1]))
         # Divide the printer plate into a list of areas (X offset, Y offset, width, height),
@@ -64,6 +71,12 @@ class Slicer:
                 for m in self.models:
                     m.translate(0, ty, 0)            
 
+        end = timer()
+
+        if self.config["verbose"]:
+            print(" done ({0:.2}s)".format(end - start), file = sys.stderr)
+
+                    
     def intercept2d(self, x0, y0, x1, y1, y, precision = 8):
         """ Apply the intercept theorem in 2D """
         return round(x0 + (x1 - x0) * (y - y0) / (y1 - y0), precision) 
@@ -79,7 +92,12 @@ class Slicer:
         v0 = [ facet[0], facet[1], facet[2] ]
         v1 = [ facet[3], facet[4], facet[5] ]
         v2 = [ facet[6], facet[7], facet[8] ]
-                
+
+        # Check if the facet is plane
+        if np.isclose(v0[2], z) and np.isclose(v1[2], z) and np.isclose(v2[2], z):
+            print("_")
+            return 0, None, None, None, None        
+        
         # If 2 vertices of the facet are in the slicing plan, add the edge
         if np.isclose(v0[2], z) and np.isclose(v1[2], z):
             p[0][0], p[0][1], p[1][0], p[1][1] = v0[0], v0[1], v1[0], v1[1]
@@ -135,7 +153,7 @@ class Slicer:
 
         if verbose:
             print("Slicing", file = sys.stderr)
-            
+
         self.arrange()
 
         # Maximal Z slicing value 
@@ -152,9 +170,16 @@ class Slicer:
             
         # Slicing loop
         layers = []
-                
+
+        start_loop = timer()
+        
         for z in np.arange(0, z_max, z_incr):
             for m in self.models:
+                if self.config["verbose"]:
+                    print(" {:3.2f}%".format(z / z_max * 100.0), end = "", file = sys.stderr)
+                    print("\b\b\b\b\b\b\b\b", end = "", file = sys.stderr)
+                    sys.stderr.flush()
+                
                 m.set_slicing_plan(z)
 
                 segs = []
@@ -170,9 +195,11 @@ class Slicer:
                     
                 if len(segs) > 0:
                     layers.append(segs)
-                
+
+        end_loop = timer()
+                    
         if verbose:
-            print(" {0} layers extracted".format(len(layers)), file = sys.stderr)
+            print(" {0} layers extracted ({1:.2}s)".format(len(layers), end_loop - start_loop), file = sys.stderr)
 
         return layers
 

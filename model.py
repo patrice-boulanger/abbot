@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys, stl
+import numpy as np
 
 class Model:
         
