@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os, sys, getopt, json
 
@@ -140,8 +140,9 @@ def main(argv):
     layers = optimizer.optimize(slices)
 
     gcode = GCode(config)
+
     gcode.dump(layers)
-    
+
 if __name__ == "__main__":
     main(sys.argv[1:])
     sys.exit(0)
