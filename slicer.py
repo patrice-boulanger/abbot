@@ -163,7 +163,8 @@ class Slicer:
                     (n, xa, ya, xb, yb) = self.slice_facet(facet, z)
                     
                     if n == 2:
-                        segs.append((xa, ya, xb, yb))
+                        if not np.isclose(xa, xb) or not np.isclose(ya, yb):
+                            segs.append((xa, ya, xb, yb))
                     else:
                         continue
                     
