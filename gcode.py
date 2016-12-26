@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, math
+import os, math, sys
 import numpy as np
 
 class GCode:
@@ -9,6 +9,15 @@ class GCode:
         self.config = config
         self.fd = None
 
+        self.output = sys.stdout
+        
+        # Output file
+        if self.config["output"] != None:
+            try:
+                self.output = open(config["output"], "w")
+            except Exception as e:
+                print("Unable to open " + config["output"] + ": " + str(e))
+                
         # Convert speed from mm/s to mm/min
         self.sp_travel = self.config["speed"]["travel"] * 60
         self.sp_print = self.config["speed"]["print"] * 60
@@ -40,19 +49,19 @@ class GCode:
         for z in np.arange(0.0, z_max, z_incr):
             layer = layers[layer_nr]
 
-            print("; layer #" + str(layer_nr))
+            print("; layer #" + str(layer_nr), file = self.output)
             for path in layer:
-                print("G0 F{0} X{1:.8} Y{2:.8} Z{3:.8}".format(self.sp_travel, path[0][0], path[0][1], z + z_incr))
+                print("G0 F{0} X{1:.8} Y{2:.8} Z{3:.8}".format(self.sp_travel, path[0][0], path[0][1], z + z_incr), file = self.output)
                     
                 e_len += self.extrusion_length(path[0][0], path[0][1], path[1][0], path[1][1])
 
-                print("G1 F{0} X{1:.8} Y{2:.8} E{3:.12}".format(self.sp_print, path[1][0], path[1][1], e_len))
+                print("G1 F{0} X{1:.8} Y{2:.8} E{3:.12}".format(self.sp_print, path[1][0], path[1][1], e_len), file = self.output)
                 prev[0], prev[1] = path[1][0], path[1][1]
                         
                 for p in path[2:]:
                     e_len += self.extrusion_length(prev[0], prev[1], p[0], p[1])
                             
-                    print("G1 X{0:.8} Y{1:.8} E{2:.12}".format(p[0], p[1], e_len))
+                    print("G1 X{0:.8} Y{1:.8} E{2:.12}".format(p[0], p[1], e_len), file = self.output)
                     prev[0], prev[1] = p[0], p[1]
                             
             layer_nr += 1
