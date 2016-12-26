@@ -1,13 +1,16 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
+import sys
 import numpy as np
 import stl
+from timeit import default_timer as timer
 
+from packer import Packer
 from model import Model
+from util import fequals
 
 class Slicer:
-    """ """
-     
+
     def __init__(self, config, models):
         """ Constructor """
         self.config = config
@@ -15,59 +18,30 @@ class Slicer:
         
     def arrange(self):
         """ Packs models on the printer plate according to their bounding box """
-
-        # Sort the models order by decreasing surface
-        self.models.sort(reverse = True, key = lambda m: (m.bbox_max[0] - m.bbox_min[0]) * (m.bbox_max[1] - m.bbox_min[1]))
-        # Divide the printer plate into a list of areas (X offset, Y offset, width, height),
-        # Initialized at 90% of the size of the plate
-        areas = [ [0, 0, 0.9 * self.config["printer"]["max"][0], 0.9 * self.config["printer"]["max"][1]] ]
-
-        gap = 10 # Minimum gap betweem 2 models
         
-        for t in self.models:
-            tx = -t.bbox_min[0]
-            ty = -t.bbox_min[1]
-            tz = -t.bbox_min[2] # Force the model to lay on the plate
+        if self.config["verbose"]:
+            print(" Arrange models on the plate ...", file = sys.stderr, end = "")
+            sys.stderr.flush()
+
+        packer = Packer(self.config)
             
-            w = gap + (t.bbox_max[0] - t.bbox_min[0])
-            h = gap + (t.bbox_max[1] - t.bbox_min[1])
+        start = timer()
+        
+        for m in self.models:
+            packer.add(m)
 
-            # Try to populate smallest areas first
-            areas.sort(key = lambda p: p[2] * p[3])
+        packer.arrange()
+            
+        end = timer()
 
-            for a in areas:
-                if w <= a[2] and h <= a[3]:
-                    tx += a[0] + gap
-                    ty += a[1] + gap
+        if self.config["verbose"]:
+            print(" done ({0:.2}s)".format(end - start), file = sys.stderr)
 
-                    na1 = [ a[0] + w, a[1]    , a[2] - w, h ]
-                    na2 = [ a[0]    , a[1] + h, a[2]    , a[3] - h]
-
-                    areas.remove(a)
-                    if na1[2] != 0 and na1[3] != 0:
-                        areas.append(na1)
-                    if na2[2] != 0 and na2[3] != 0:
-                        areas.append(na2)
                     
-                    break
-                    
-            if tx == -1 or ty == -1:
-                print(t.name + " doesn't fit on the plate")
-                return
-
-            t.translate(tx, ty, tz)
-
-        # Center the models on the Y axis
-        for a in areas:
-            if a[2] == 0.9 * self.config["printer"]["max"][0]:
-                ty = a[3] / 2
-                for m in self.models:
-                    m.translate(0, ty, 0)            
-
-    def intercept2d(self, x0, y0, x1, y1, y, precision = 5):
+    def intercept2d(self, x0, y0, x1, y1, y, precision = 8):
         """ Apply the intercept theorem in 2D """
         return round(x0 + (x1 - x0) * (y - y0) / (y1 - y0), precision) 
-                    
+   
     def slice_facet(self, facet, z):
         """ Slice a facet at height z """
 
@@ -79,15 +53,19 @@ class Slicer:
         v0 = [ facet[0], facet[1], facet[2] ]
         v1 = [ facet[3], facet[4], facet[5] ]
         v2 = [ facet[6], facet[7], facet[8] ]
-                
+
+        # Check if the facet is plane
+        if fequals(v0[2], z) and fequals(v1[2], z) and fequals(v2[2], z):
+            return 0, None, None, None, None        
+        
         # If 2 vertices of the facet are in the slicing plan, add the edge
-        if v0[2] == z and v1[2] == z:
+        if fequals(v0[2], z) and fequals(v1[2], z):
             p[0][0], p[0][1], p[1][0], p[1][1] = v0[0], v0[1], v1[0], v1[1]
             n = 2
-        elif v0[2] == z and v2[2] == z:
+        elif fequals(v0[2], z) and fequals(v2[2], z):
             p[0][0], p[0][1], p[1][0], p[1][1] = v0[0], v0[1], v2[0], v2[1]
             n = 2
-        elif v1[2] == z and v2[2] == z:
+        elif fequals(v1[2], z) and fequals(v2[2], z):
             p[0][0], p[0][1], p[1][0], p[1][1] = v1[0], v1[1], v2[0], v2[1]
             n = 2
         else:
@@ -95,7 +73,7 @@ class Slicer:
             dv0, dv1, dv2 = v0[2] - z, v1[2] - z, v2[2] - z
 
 	    # Slicing plan intersects the triangle
-	    # Check which edges of the triangle is intersecting the plan and use the interception theorem
+	    # Check which edge of the triangle intersects the plan and use the interception theorem
 	    # to interpolate the coordinates            
             if dv0 * dv1 < 0:
                 p[n][0] = self.intercept2d(v0[0], v0[2], v1[0], v1[2], z)
@@ -116,16 +94,16 @@ class Slicer:
 	    # If yes, this is the last point of our segment, the other point has been
 	    # filled at the previous step.
             if n == 1:
-                if v0[2] == z:
+                if fequals(v0[2], z):
                     p[n][0], p[n][1] = v0[0], v0[1]
                     n += 1
-                if v1[2] == z:
+                if fequals(v1[2], z):
                     p[n][0], p[n][1] = v1[0], v1[1]
                     n += 1
-                if v2[2] == z:
+                if fequals(v2[2], z):
                     p[n][0], p[n][1] = v2[0], v2[1]
                     n += 1
-
+                    
         return n, p[0][0], p[0][1], p[1][0], p[1][1]
     
     def build_slicing_plan(self):
@@ -134,47 +112,53 @@ class Slicer:
         verbose = self.config["verbose"]
 
         if verbose:
-            print("Start slicing")
-            
+            print("Slicing", file = sys.stderr)
+
         self.arrange()
 
-        # Initialize slicing plan & maximal Z slicing value 
+        # Maximal Z slicing value 
         z_max = 0.0
         
         for m in self.models:
-            m.set_slicing_plan(0.0)
             if z_max < m.bbox_max[2]:
                 z_max = m.bbox_max[2]
 
-        z_incr = self.config["quality"]
+        z_incr = float(self.config["quality"])
         
         if verbose:
-            print(" Slicing height is " + str(z_max) + "mm")
+            print(" Slicing height is " + str(z_max) + "mm", file = sys.stderr)
             
         # Slicing loop
         slices = []
-                
+
+        start_loop = timer()
         for z in np.arange(0, z_max, z_incr):
             for m in self.models:
+                if self.config["verbose"]:
+                    print(" {:3.2f}%".format(z / z_max * 100.0), end = "", file = sys.stderr)
+                    print("\b\b\b\b\b\b\b\b", end = "", file = sys.stderr)
+                    sys.stderr.flush()
+                
+                m.set_slicing_plan(z)
+
                 segs = []
                 
-                for i in m.lst_intersect:
-                    facet = m.mesh.points[i]
+                for facet in m.lst_intersect:
                     (n, xa, ya, xb, yb) = self.slice_facet(facet, z)
                     
                     if n == 2:
-                        segs.append((xa, ya, xb, yb))
+                        if not fequals(xa, xb) or not fequals(ya, yb):
+                            segs.append((xa, ya, xb, yb))
                     else:
                         continue
                     
                 if len(segs) > 0:
                     slices.append(segs)
 
-                # Increment the slicing height and start again
-                m.update_slicing_plan(z)
-                
+        end_loop = timer()
+                    
         if verbose:
-            print(" {0} slices extracted".format(len(slices)))
+            print(" {0} layers extracted ({1:.2}s)".format(len(slices), end_loop - start_loop), file = sys.stderr)
 
         return slices
 

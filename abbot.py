@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import os, sys, getopt, json
+import os, sys, getopt, json, resource
+from timeit import default_timer as timer
 
 # Our stuffs
 from slicer import Slicer
@@ -123,24 +124,43 @@ def main(argv):
         usage()
         sys.exit(1)
     else:
+        if verbose:
+            print("Loading files ..." , file = sys.stderr, end = "")
+            sys.stderr.flush()
+            
+        start = timer()
+
         for f in filenames:
             try:
                 models.append(Model(f))
+               
             except Exception as err:
-                print("Loading " + f + ": " + str(err))
+                print("Loading " + f + ": " + str(err), file = sys.stderr)
                 return
-                 
+
+        end = timer()
+
+        if verbose:
+            print(" done ({0:.2}s)".format(end - start), file = sys.stderr)
+            
     config["filenames"] = filenames
 
     # Let's go
     slicer = Slicer(config, models)
     slices = slicer.build_slicing_plan()
 
-    optimiser = Optimizer(config)
-    layers = optimiser.optimize(slices)
+    optimizer = Optimizer(config)
+    layers = optimizer.optimize(slices)
 
     gcode = GCode(config)
     gcode.dump(layers)
+
+    # Memory usage
+    if verbose:
+        print("Resources usage:", file = sys.stderr)
+        print(" cpu: user={0:3.2f}s kernel={1:3.2f}s".format(resource.getrusage(resource.RUSAGE_SELF).ru_utime,
+                                                             resource.getrusage(resource.RUSAGE_SELF).ru_stime), file = sys.stderr)
+        print(" memory (max): {0} kB".format(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss), file = sys.stderr)
     
 if __name__ == "__main__":
     main(sys.argv[1:])
