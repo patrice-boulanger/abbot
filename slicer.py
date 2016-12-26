@@ -95,7 +95,6 @@ class Slicer:
 
         # Check if the facet is plane
         if np.isclose(v0[2], z) and np.isclose(v1[2], z) and np.isclose(v2[2], z):
-            print("_")
             return 0, None, None, None, None        
         
         # If 2 vertices of the facet are in the slicing plan, add the edge
