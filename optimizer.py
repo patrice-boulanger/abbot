@@ -27,7 +27,8 @@ class Optimizer:
         return np.isclose(1, abs(u1[0] * v1[0] + u1[1] * v1[1]))
     
     def points_from_segments(self, segs):
-        """ Take a list of segments and organize them into one or several continuous lists of points """
+        """ Take a list of segments and organize them into one or several continuous lists of points.
+            If several successive points are aligned, reduced the number of points keeping only the endpoints. """
 
         paths = []
 
@@ -36,13 +37,12 @@ class Optimizer:
             path = [] # [ (x,y), (x,y), ... (x,y) ]
             
             # Initialize the path with the 2 first points
+            assert(not np.isclose(segs[0][0], segs[0][2]) or not np.isclose(segs[0][1], segs[0][3]))
+
             path.append((segs[0][0], segs[0][1]))
             path.append((segs[0][2], segs[0][3]))
 
-            if np.isclose(segs[0][0], segs[0][2]) and np.isclose(segs[0][1], segs[0][3]):
-                print("still null segment")
-            
-            del segs[0]
+            del segs[0]            
 
             idx = 0
             while len(segs) > 0 and idx < len(segs):
@@ -91,7 +91,12 @@ class Optimizer:
         return paths
         
     def optimize(self, layers):
-
+        """ At this point, the layers are a list of unordered segments.
+            The optimisation process has to organized them into a list of successive points
+            that draw the paths to drive the tool. 
+            This process also removes duplicated points and build longer segments when several 
+            points are colinear. """
+        
         if self.config["verbose"]:
             print("Optimization ... ", file = sys.stderr)
             sys.stderr.flush()
@@ -101,7 +106,7 @@ class Optimizer:
         # Number of points in the final slicing plan
         new_sz = 0
         # Optimized layers
-        opt_layers = []
+        optimized = []
 
         cnt = 0
         
@@ -117,7 +122,7 @@ class Optimizer:
             plist = self.points_from_segments(segs)            
             new_sz += len(plist)
 
-            opt_layers.append(plist)
+            optimized.append(plist)
             cnt += 1
             
         end = timer()
@@ -131,4 +136,4 @@ class Optimizer:
                   file = sys.stderr)
             sys.stderr.flush()
 
-        return opt_layers
+        return optimized
