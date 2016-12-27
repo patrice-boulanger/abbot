@@ -133,6 +133,7 @@ class Slicer:
         slices = []
 
         start_loop = timer()
+
         for z in np.arange(0, z_max, z_incr):
 
             slice = []
@@ -142,12 +143,12 @@ class Slicer:
                     print(" {:3.2f}%".format(z / z_max * 100.0), end = "", file = sys.stderr)
                     print("\b\b\b\b\b\b\b\b", end = "", file = sys.stderr)
                     sys.stderr.flush()
-                
-                m.set_slicing_plan(z)
 
+                m.set_slicing_plan(z)
+                
                 segs = []
                 
-                for facet in m.lst_intersect:
+                for facet in m.intersect:
                     (n, xa, ya, xb, yb) = self.slice_facet(facet, z)
                     
                     if n == 2:
@@ -160,9 +161,9 @@ class Slicer:
                     slice.append(segs)
 
             slices.append(slice)
-                    
+            
         end_loop = timer()
-                    
+
         if verbose:
             print(" {0} layers extracted ({1:.2}s)".format(len(slices), end_loop - start_loop), file = sys.stderr)
 

@@ -19,7 +19,7 @@ class Model:
         self.bbox_max = [ None, None, None ]
         self.update_bounds()
 
-        self.lst_intersect = [] # facets that intersect the slicing plan
+        self.intersect = [] # facets that intersect the slicing plan
 
     def translate(self, tx, ty, tz):
         """ Translate the mesh """
@@ -57,11 +57,11 @@ class Model:
     def set_slicing_plan(self, z):
         """ Compute internal list of facets that intersect w/ the slicing plan """
 
-        del self.lst_intersect[:]
+        del self.intersect[:]
         
         for p in self.mesh.points:
             zmin = min(p[2], min(p[5], p[8]))
             zmax = max(p[2], max(p[5], p[8]))
 
             if zmin <= z and zmax >= z:
-                self.lst_intersect.append(p)
+                self.intersect.append(p)
