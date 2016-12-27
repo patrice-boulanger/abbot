@@ -1,3 +1,6 @@
 *~
 #.*
 *__pycache__*
+*.gcode
+*.stl
+*test*
