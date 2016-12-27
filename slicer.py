@@ -30,7 +30,8 @@ class Slicer:
         for m in self.models:
             packer.add(m)
 
-        packer.arrange()
+        if not packer.arrange():
+            return
             
         end = timer()
 
