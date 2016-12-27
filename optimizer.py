@@ -113,18 +113,26 @@ class Optimizer:
         cnt = 0
         
         start = timer()
-        
-        for segs in layers:
-            if self.config["verbose"]:
-                print(" {:3.2f}%".format(cnt / len(layers) * 100.0), end = "", file = sys.stderr)
-                print("\b\b\b\b\b\b\b\b", end = "", file = sys.stderr)
-                sys.stderr.flush()
-            
-            ini_sz += len(segs) 
-            plist = self.points_from_segments(segs)            
-            new_sz += len(plist)
 
-            optimized.append(plist)
+        for slice in layers:
+
+            paths = []
+            
+            for segs in slice:
+            
+                if self.config["verbose"]:
+                    print(" {:3.2f}%".format(cnt / len(layers) * 100.0), end = "", file = sys.stderr)
+                    print("\b\b\b\b\b\b\b\b", end = "", file = sys.stderr)
+                    sys.stderr.flush()
+            
+                ini_sz += len(segs) 
+                plist = self.points_from_segments(segs)            
+                new_sz += len(plist)
+
+                paths.append(plist)
+
+            optimized.append(paths)
+            
             cnt += 1
             
         end = timer()

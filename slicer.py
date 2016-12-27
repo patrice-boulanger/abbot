@@ -134,6 +134,9 @@ class Slicer:
 
         start_loop = timer()
         for z in np.arange(0, z_max, z_incr):
+
+            slice = []
+            
             for m in self.models:
                 if self.config["verbose"]:
                     print(" {:3.2f}%".format(z / z_max * 100.0), end = "", file = sys.stderr)
@@ -154,8 +157,10 @@ class Slicer:
                         continue
                     
                 if len(segs) > 0:
-                    slices.append(segs)
+                    slice.append(segs)
 
+            slices.append(slice)
+                    
         end_loop = timer()
                     
         if verbose:

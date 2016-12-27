@@ -54,21 +54,22 @@ class GCode:
         
         for z in np.arange(0.0, z_max, z_incr):
             layer = layers[layer_nr]
-
             self.emit("; layer #" + str(layer_nr))
-            for path in layer:
-                self.emit("G0 F{0} X{1:.5f} Y{2:.5f} Z{3:.5f}".format(self.sp_travel, path[0][0], path[0][1], z + z_incr))
-                    
-                e_len += self.extrusion_length(path[0][0], path[0][1], path[1][0], path[1][1])
+            
+            for paths in layer:
+                for path in paths:
+                    self.emit("G0 F{0} X{1:.5f} Y{2:.5f} Z{3:.5f}".format(self.sp_travel, path[0][0], path[0][1], z + z_incr))
+                  
+                    e_len += self.extrusion_length(path[0][0], path[0][1], path[1][0], path[1][1])
+                    self.emit("G1 F{0} X{1:.5f} Y{2:.5f} E{3:.5f}".format(self.sp_print, path[1][0], path[1][1], e_len))
 
-                self.emit("G1 F{0} X{1:.5f} Y{2:.5f} E{3:.5f}".format(self.sp_print, path[1][0], path[1][1], e_len))
-                prev[0], prev[1] = path[1][0], path[1][1]
+                    prev[0], prev[1] = path[1][0], path[1][1]
                         
-                for p in path[2:]:
-                    e_len += self.extrusion_length(prev[0], prev[1], p[0], p[1])
-                            
-                    self.emit("G1 X{0:.5f} Y{1:.5f} E{2:.5f}".format(p[0], p[1], e_len))
-                    prev[0], prev[1] = p[0], p[1]
+                    for p in path[2:]:
+                        e_len += self.extrusion_length(prev[0], prev[1], p[0], p[1])
+                        
+                        self.emit("G1 X{0:.5f} Y{1:.5f} E{2:.5f}".format(p[0], p[1], e_len))
+                        prev[0], prev[1] = p[0], p[1]
                             
             layer_nr += 1
 
