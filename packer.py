@@ -60,11 +60,9 @@ class Packer:
                     return False
 
             if a_width <= a_height and a_width + m_width <= self.xmax:
-                print("RIGHT", file = sys.stderr)
                 self.places.append( Rectangle(gap + self.places[-1].x + self.places[-1].w, self.places[-1].y, m_width, m_height) )
                 a_width += m_width + gap
             elif a_height <= a_width and a_height + m_height <= self.ymax:
-                print("BOTTOM", file = sys.stderr)
                 self.places.append( Rectangle(self.places[-1].x, gap + self.places[-1].y + self.places[-1].h, m_width, m_height) )
                 a_height += m_height + gap
             else:
