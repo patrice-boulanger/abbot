@@ -7,7 +7,7 @@ from timeit import default_timer as timer
 
 from packer import Packer
 from model import Model
-from util import fequals
+from util import fequals, intercept2d
 
 class Slicer:
 
@@ -38,11 +38,6 @@ class Slicer:
         if self.config["verbose"]:
             print(" done ({0:.2}s)".format(end - start), file = sys.stderr)
 
-                    
-    def intercept2d(self, x0, y0, x1, y1, y, precision = 8):
-        """ Apply the intercept theorem in 2D """
-        return round(x0 + (x1 - x0) * (y - y0) / (y1 - y0), precision) 
-   
     def slice_facet(self, facet, z):
         """ Slice a facet at height z """
 
@@ -77,18 +72,18 @@ class Slicer:
 	    # Check which edge of the triangle intersects the plan and use the interception theorem
 	    # to interpolate the coordinates            
             if dv0 * dv1 < 0:
-                p[n][0] = self.intercept2d(v0[0], v0[2], v1[0], v1[2], z)
-                p[n][1] = self.intercept2d(v0[1], v0[2], v1[1], v1[2], z)
+                p[n][0] = intercept2d(v0[0], v0[2], v1[0], v1[2], z)
+                p[n][1] = intercept2d(v0[1], v0[2], v1[1], v1[2], z)
                 n += 1
 
             if dv1 * dv2 < 0:
-                p[n][0] = self.intercept2d(v1[0], v1[2], v2[0], v2[2], z)
-                p[n][1] = self.intercept2d(v1[1], v1[2], v2[1], v2[2], z)
+                p[n][0] = intercept2d(v1[0], v1[2], v2[0], v2[2], z)
+                p[n][1] = intercept2d(v1[1], v1[2], v2[1], v2[2], z)
                 n += 1
 
             if dv0 * dv2 < 0:
-                p[n][0] = self.intercept2d(v0[0], v0[2], v2[0], v2[2], z)
-                p[n][1] = self.intercept2d(v0[1], v0[2], v2[1], v2[2], z)
+                p[n][0] = intercept2d(v0[0], v0[2], v2[0], v2[2], z)
+                p[n][1] = intercept2d(v0[1], v0[2], v2[1], v2[2], z)
                 n += 1
                 
 	    # We still have to check if one of the vertices intersects the slicing plan.
