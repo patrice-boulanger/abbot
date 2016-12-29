@@ -118,7 +118,9 @@ def main(argv):
         config["output"] = output
 
     config["verbose"] = verbose
-            
+
+    total_start = timer()
+    
     if len(filenames) == 0:
         print("no filenames specified")
         usage()
@@ -155,8 +157,11 @@ def main(argv):
     gcode = GCode(config)
     gcode.dump(layers)
 
+    total_end = timer()
+    
     # Memory usage
     if verbose:
+        print("Total time: {0:3.2f}s".format(total_end - total_start), file = sys.stderr)
         print("Resources usage:", file = sys.stderr)
         print(" cpu: user={0:3.2f}s kernel={1:3.2f}s".format(resource.getrusage(resource.RUSAGE_SELF).ru_utime,
                                                              resource.getrusage(resource.RUSAGE_SELF).ru_stime), file = sys.stderr)
