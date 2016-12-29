@@ -4,6 +4,8 @@ import os, math, sys
 import numpy as np
 from timeit import default_timer as timer
 
+from fill import GridPattern
+
 class GCode:
     
     def __init__(self, config):
@@ -13,6 +15,7 @@ class GCode:
         # Convert speed from mm/s to mm/min
         self.sp_travel = self.config["speed"]["travel"] * 60
         self.sp_print = self.config["speed"]["print"] * 60
+        self.sp_infill = self.config["speed"]["infill"] * 60
         
         # Areas to compute extrusion length
         self.nozzle_area = self.config["extruder"]["nozzle_diameter"] * self.config["extruder"]["nozzle_diameter"] * math.pi
@@ -71,14 +74,45 @@ class GCode:
         layer_nr = 0 
 
         start = timer()        
-        
+
+        # Grid pattern with step == 1mm
+
         for z in np.arange(0.0, z_max, z_incr):
             layer = layers[layer_nr]
             self.emit("; layer #" + str(layer_nr))
             
             for paths in layer:
+                xmin = 9999
+                ymin = 9999
+                xmax = 0
+                ymax = 0
+
+                # Perimeter
                 for path in paths:
+                    for p in path:
+                        xmin = min(xmin, p[0])
+                        xmax = max(xmax, p[0])
+                        ymin = min(ymin, p[1])
+                        ymax = max(ymax, p[1])
+
+                    self.emit("; perimeter")
                     e_len = self.do_path(path, z, e_len)
+
+                # Filling
+                self.emit("; infill")
+                    
+                if layer_nr < 3 or layer_nr > len(layers) - 4:
+                    step = self.config["extruder"]["nozzle_diameter"]
+                else:
+                    step = 1
+                        
+                grid = GridPattern(xmin, ymin, xmax, ymax, step) 
+
+                grid.scan(paths, layer_nr % 2)
+                for s in grid.segments:
+                    self.emit("G0 F{0} X{1:.5f} Y{2:.5f}".format(self.sp_infill, s[0], s[1]))
+                    e_len += self.extrusion_length(s[0], s[1], s[2], s[3])
+                    self.emit("G1 F{0} X{1:.5f} Y{2:.5f} E{3:.5f}".format(self.sp_infill, s[2], s[3], e_len))
                     
             layer_nr += 1
 
