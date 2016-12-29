@@ -33,7 +33,29 @@ class GCode:
         length = (self.nozzle_area * distance) / self.filament_area
 
         return length
+    
+    def do_path(self, path, z, length):
+        """ Emits the gcode for the specified path, returns the length of filament extruded """
+
+        # Current extrusion length
+        e_len = length
+        # Last point
+        prev = [ None, None ]
+
+        self.emit("G0 F{0} X{1:.5f} Y{2:.5f} Z{3:.5f}".format(self.sp_travel, path[0][0], path[0][1], z + float(self.config["quality"])))
+                  
+        e_len += self.extrusion_length(path[0][0], path[0][1], path[1][0], path[1][1])
+        self.emit("G1 F{0} X{1:.5f} Y{2:.5f} E{3:.5f}".format(self.sp_print, path[1][0], path[1][1], e_len))
         
+        prev[0], prev[1] = path[1][0], path[1][1]
+        
+        for p in path[2:]:
+            e_len += self.extrusion_length(prev[0], prev[1], p[0], p[1])            
+            self.emit("G1 X{0:.5f} Y{1:.5f} E{2:.5f}".format(p[0], p[1], e_len))
+            prev[0], prev[1] = p[0], p[1]
+
+        return e_len
+    
     def dump(self, layers):
         
         if self.config["verbose"]:
@@ -43,8 +65,6 @@ class GCode:
         z_incr = self.config["quality"]
         z_max = len(layers) * z_incr
 
-        # Last point
-        prev = [ None, None ]
         # Extrusion length
         e_len = 0
         # Layer index
@@ -58,24 +78,13 @@ class GCode:
             
             for paths in layer:
                 for path in paths:
-                    self.emit("G0 F{0} X{1:.5f} Y{2:.5f} Z{3:.5f}".format(self.sp_travel, path[0][0], path[0][1], z + z_incr))
-                  
-                    e_len += self.extrusion_length(path[0][0], path[0][1], path[1][0], path[1][1])
-                    self.emit("G1 F{0} X{1:.5f} Y{2:.5f} E{3:.5f}".format(self.sp_print, path[1][0], path[1][1], e_len))
-
-                    prev[0], prev[1] = path[1][0], path[1][1]
-                        
-                    for p in path[2:]:
-                        e_len += self.extrusion_length(prev[0], prev[1], p[0], p[1])
-                        
-                        self.emit("G1 X{0:.5f} Y{1:.5f} E{2:.5f}".format(p[0], p[1], e_len))
-                        prev[0], prev[1] = p[0], p[1]
-                            
+                    e_len = self.do_path(path, z, e_len)
+                    
             layer_nr += 1
 
         end = timer()
 
         if self.config["verbose"]:
-            print(" done ({:3.2f}s)".format(end - start), file = sys.stderr)
+            print(" done in {0:3.2f}s, {1:.2f}mm extruded".format(end - start, e_len), file = sys.stderr)
             sys.stderr.flush()
             
