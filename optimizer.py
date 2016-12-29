@@ -123,11 +123,10 @@ class Optimizer:
         end = timer()
             
         if self.config["verbose"]:
-            print(" {0} segments ({1} points) -> {2} points ({3:.1f}% in {4:.2f}s)".format(ini_sz,
-                                                                                          2 * ini_sz,
-                                                                                          new_sz,
-                                                                                          (new_sz * 100 / ini_sz) - 100,
-                                                                                          end - start),
+            print(" {0} segments reduced to {1} points ({2:.1f}% in {3:.2f}s)".format(ini_sz,
+                                                                                      new_sz,
+                                                                                      (new_sz * 100 / ini_sz) - 100,
+                                                                                      end - start),
                   file = sys.stderr)
             sys.stderr.flush()
 

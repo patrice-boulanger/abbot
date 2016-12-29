@@ -108,7 +108,7 @@ class Slicer:
         verbose = self.config["verbose"]
 
         if verbose:
-            print("Slicing", file = sys.stderr)
+            print("Slicing ...", file = sys.stderr)
 
         self.arrange()
 
