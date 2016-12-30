@@ -58,6 +58,32 @@ class GCode:
             prev[0], prev[1] = p[0], p[1]
 
         return e_len
+
+    def do_infill(self, paths, xmin, ymin, xmax, ymax, step, length):
+        e_len = length
+        
+        grid = GridPattern(xmin, ymin, xmax, ymax, step) 
+
+        grid.scan(paths, GridPattern.BOTH_AXIS)
+        for s in grid.segments:
+            self.emit("G0 F{0} X{1:.5f} Y{2:.5f}".format(self.sp_infill, s[0], s[1]))
+            e_len += self.extrusion_length(s[0], s[1], s[2], s[3])
+            self.emit("G1 F{0} X{1:.5f} Y{2:.5f} E{3:.5f}".format(self.sp_infill, s[2], s[3], e_len))
+
+        return e_len
+    
+    def do_surface(self, paths, xmin, ymin, xmax, ymax, direction, length):
+        e_len = length
+        
+        grid = GridPattern(xmin, ymin, xmax, ymax, self.config["extruder"]["nozzle_diameter"]) 
+
+        grid.scan(paths, direction)
+        for s in grid.segments:
+            self.emit("G0 F{0} X{1:.5f} Y{2:.5f}".format(self.sp_infill, s[0], s[1]))
+            e_len += self.extrusion_length(s[0], s[1], s[2], s[3])
+            self.emit("G1 F{0} X{1:.5f} Y{2:.5f} E{3:.5f}".format(self.sp_infill, s[2], s[3], e_len))
+
+        return e_len
     
     def dump(self, layers):
         
@@ -75,45 +101,21 @@ class GCode:
 
         start = timer()        
 
-        # Grid pattern with step == 1mm
-
         for z in np.arange(0.0, z_max, z_incr):
             layer = layers[layer_nr]
             self.emit("; layer #" + str(layer_nr))
             
-            for paths in layer:
-                xmin = 9999
-                ymin = 9999
-                xmax = 0
-                ymax = 0
-
+            for xmin, ymin, xmax, ymax, paths in layer:
                 # Perimeter
                 for path in paths:
-                    for p in path:
-                        xmin = min(xmin, p[0])
-                        xmax = max(xmax, p[0])
-                        ymin = min(ymin, p[1])
-                        ymax = max(ymax, p[1])
-
                     self.emit("; perimeter")
                     e_len = self.do_path(path, z, e_len)
 
                 # Filling
                 self.emit("; infill")
-                    
-                if layer_nr < 3 or layer_nr > len(layers) - 4:
-                    step = self.config["extruder"]["nozzle_diameter"]
-                else:
-                    step = 1
-                        
-                grid = GridPattern(xmin, ymin, xmax, ymax, step) 
-
-                grid.scan(paths, layer_nr % 2)
-                for s in grid.segments:
-                    self.emit("G0 F{0} X{1:.5f} Y{2:.5f}".format(self.sp_infill, s[0], s[1]))
-                    e_len += self.extrusion_length(s[0], s[1], s[2], s[3])
-                    self.emit("G1 F{0} X{1:.5f} Y{2:.5f} E{3:.5f}".format(self.sp_infill, s[2], s[3], e_len))
-                    
+                #e_len = self.do_surface(paths, xmin, ymin, xmax, ymax, layer_nr % 2, e_len)
+                e_len = self.do_infill(paths, xmin, ymin, xmax, ymax, 1, e_len)
+                                        
             layer_nr += 1
 
         end = timer()
