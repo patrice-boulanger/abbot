@@ -58,10 +58,13 @@ def init_configuration(config):
     config["speed"]["skin_infill"] = 30
     
     # Infill
+    config["filling_percent"] = 20    
+
+    # Thickness
     config["thickness"] = dict()
     config["thickness"]["shell"] = 0.7
     config["thickness"]["top_bottom"] = 0.6
-        
+
 def main(argv):
     """ Program entry point """
 
