@@ -25,7 +25,6 @@ class Optimizer:
             
             # Initialize the path with the 2 first points
             assert(not fequals(segs[0][0], segs[0][2]) or not fequals(segs[0][1], segs[0][3]))
-
             path.append((segs[0][0], segs[0][1]))
             path.append((segs[0][2], segs[0][3]))
 
@@ -102,9 +101,8 @@ class Optimizer:
         for slice in layers:
 
             paths = []
-            
-            for segs in slice:
-            
+
+            for xmin, ymin, xmax, ymax, segs in slice:            
                 if self.config["verbose"]:
                     print(" {:3.2f}%".format(cnt / len(layers) * 100.0), end = "", file = sys.stderr)
                     print("\b\b\b\b\b\b\b\b", end = "", file = sys.stderr)
@@ -114,7 +112,7 @@ class Optimizer:
                 plist = self.points_from_segments(segs)            
                 new_sz += len(plist)
 
-                paths.append(plist)
+                paths.append([ xmin, ymin, xmax, ymax, plist ])
 
             optimized.append(paths)
             

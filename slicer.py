@@ -15,6 +15,9 @@ class Slicer:
         """ Constructor """
         self.config = config
         self.models = models
+
+        # Number of layer to fit top/bottom thickness
+        self.thickness = self.config["thickness"]["top_bottom"] / self.config["quality"]
         
     def arrange(self):
         """ Packs models on the printer plate according to their bounding box """
@@ -142,18 +145,25 @@ class Slicer:
                 m.set_slicing_plan(z)
                 
                 segs = []
+
+                xmin, ymin = 99999.0, 99999.0
+                xmax, ymax = 0.0, 0.0
                 
                 for facet in m.intersect:
                     (n, xa, ya, xb, yb) = self.slice_facet(facet, z)
-                    
+
                     if n == 2:
                         if not fequals(xa, xb) or not fequals(ya, yb):
+                            xmin = min(xmin, min(xa, xb))
+                            ymin = min(ymin, min(ya, yb))
+                            xmax = max(xmax, max(xa, xb))
+                            ymax = max(ymax, max(ya, yb))
                             segs.append((xa, ya, xb, yb))
                     else:
                         continue
-                    
+                
                 if len(segs) > 0:
-                    slice.append(segs)
+                    slice.append([ xmin, ymin, xmax, ymax, segs ])
 
             slices.append(slice)
             
